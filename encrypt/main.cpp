@@ -14,6 +14,8 @@ string getFileExtension(string);
 void encrypt(string, const string&);
 void decrypt(string, const string&);
 vector<byte> readfile(const string&);
+byte logic(byte, size_t, const string&, const char);
+
 string signature = "NNAMDI_CHIDUME_SIGN";
 const char key = 0xAA;
 
@@ -29,12 +31,7 @@ int main(int argc, const char * argv[]) {
     string password = static_cast<string>(argv[3]);
     
     string extension = getFileExtension(filename);
-        
-    if (extension != "jpg") {
-        cout << "Unsupported file type";
-        return 1;
-    }
-    
+            
     if (password.length() == 0) {
         cout << "There is no password.";
         return 1;
@@ -105,7 +102,7 @@ void encrypt(string filename, const string& password) {
     
     vector<byte> data = readfile(filename);
     
-    std::ofstream out(filename, std::ios::binary);
+    std::ofstream out(filename, std::ios::binary | std::ios::trunc);
     
     // add file sign
     for (int i = 0; i < signature.length(); ++i) {
@@ -114,9 +111,7 @@ void encrypt(string filename, const string& password) {
 
     for (int i = 0; i < data.size(); ++i) {
         
-        byte x = static_cast<byte>(password[i % password.size()]) ^ static_cast<byte>(key);
-        
-        const byte xored = data[i] ^ x;
+        const byte xored = logic(data[i], i, password, key);
         
         out.put((char)xored);
         
@@ -127,45 +122,62 @@ void encrypt(string filename, const string& password) {
 }
 
 void decrypt(string filename, const string& password) {
-
+    
     vector<byte> data = readfile(filename);
-
+    
     // check if signature is present
     
     size_t len = signature.length();
     string sig;
     
+    if (password.empty()) {
+        std::cerr << "Password cannot be empty.\n";
+        return;
+    }
+    
+    if (data.size() < signature.length()) {
+        std::cerr << "File too short to contain valid signature.\n";
+        return;
+    }
+    
     for (int i = 0; i < len; ++i) {
-        cout <<static_cast<char>(data[i]);
+        cout << static_cast<char>(data[i]);
         sig += static_cast<char>(data[i]);
     }
+    
     cout << "\n";
     
     cout << sig << "\n";
     cout << (sig == signature) << "\n" ;
     
-    if (sig == signature) {
-
-        std::ofstream out(filename, std::ios::trunc | std::ios::binary);
-
-        // decrypt
-        for (int i = 0; i < data.size(); ++i) {
-                        
-            if (i < len) {
-                continue;
-            }
-            
-            byte x = static_cast<byte>(password[i % password.size()]) ^ static_cast<byte>(key);
-            
-            const byte xored = data[i] ^ x;
-            
-            out.put((char)xored);
-            
-        }
-        
-        out.close();
-
+    if (sig != signature) {
+        std::cerr << "File is not encrypted with expected signature.\n";
+        return;
     }
+    
+    std::ofstream out(filename, std::ios::binary | std::ios::trunc);
+    
+    // decrypt
+    for (size_t i = len; i < data.size(); ++i) {
 
+        size_t j = i - len;
+
+        const byte xored = logic(data[i], j, password, key);
+        
+        out.put((char)xored);
+        
+    }
+    
+    out.close();
+    
+}
+
+byte logic(byte data, size_t j, const string& password, const char key) {
+
+    byte x = static_cast<byte>(password[j % password.size()]) ^ static_cast<byte>(key);
+    
+    const byte xored = data ^ x;
+    
+    return xored;
 
 }
