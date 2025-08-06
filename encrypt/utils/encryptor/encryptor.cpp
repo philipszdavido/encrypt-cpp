@@ -22,6 +22,11 @@ void Encryptor::encrypt(const string& filename, const string& password, const st
 
     vector<byte> data = file.readFile(filename);
     
+    if (isEncrypted(signature, data)) {
+        cout << "This file has already been encrypted." << endl;
+        return;
+    }
+    
     std::ofstream out(filename, std::ios::binary | std::ios::trunc);
     
     // add file sign
@@ -93,4 +98,20 @@ void Encryptor::decrypt(const string& filename, const string &password, const st
     
     out.close();
   
+}
+
+bool Encryptor::isEncrypted(const string& signature, vector<byte>& data) {
+    
+    string sig = "";
+    
+    for(int i = 0; i < signature.length(); ++i) {
+        sig += static_cast<char>(data[i]);
+    }
+    
+    if (sig == signature) {
+        return true;
+    }
+    
+    return false;
+    
 }

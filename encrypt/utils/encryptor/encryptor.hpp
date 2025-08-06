@@ -19,6 +19,7 @@ public:
     Encryptor(const string& password, const char key);
     void encrypt(const string& filename, const string& password, const string& signature);
     void decrypt(const string& filename, const string& password, const string& signature);
+    bool isEncrypted(const string& signature, vector<byte>& data);
     
 private:
     const string& password;
